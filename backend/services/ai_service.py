@@ -1,73 +1,51 @@
-import anthropic
-import os
-import base64
-from dotenv import load_dotenv
-
-load_dotenv()
-
-async def analyze_floor_plan(image_path: str):
-    """
-    Analyze floor plan using Claude AI
-    """
-    client = anthropic.Anthropic(
-        api_key=os.getenv("ANTHROPIC_API_KEY")
-    )
-    
-    # Read and encode image
-    with open(image_path, "rb") as img_file:
-        image_data = base64.b64encode(img_file.read()).decode("utf-8")
-    
-    # Determine media type
-    ext = os.path.splitext(image_path)[1].lower()
-    media_type_map = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png'
-    }
-    media_type = media_type_map.get(ext, 'image/jpeg')
-    
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=4000,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": image_data,
-                        },
-                    },
-                    {
-                        "type": "text",
-                        "text": """Analyze this architectural floor plan and provide detailed JSON with:
+    # 4. Qwen3-VL Analysis (High-level understanding)
+    qwen_model, qwen_processor = get_qwen_model()
+    if qwen_model:
+        try:
+            from qwen_vl_utils import process_vision_info
+            
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
                         {
-                          "documentType": "type",
-                          "scale": "scale",
-                          "rooms": [{"name": "", "dimensions": "", "purpose": ""}],
-                          "walls": {"count": 0, "type": ""},
-                          "doors": {"count": 0, "types": []},
-                          "windows": {"count": 0, "types": []},
-                          "structural_elements": [],
-                          "overall_layout": "",
-                          "recommendations_for_3d": []
-                        }
-                        Respond only with valid JSON."""
-                    }
-                ],
-            }
-        ],
-    )
-    
-    # Extract and parse response
-    response_text = message.content[0].text
-    
-    # Clean JSON response
-    import json
-    response_text = response_text.replace('```json', '').replace('```', '').strip()
-    analysis = json.loads(response_text)
-    
-    return analysis
+                            "type": "image",
+                            "image": image_path,
+                        },
+                        {"type": "text", "text": "Analyze this floor plan. Identify all rooms and their spatial relationships. Return a JSON object with 'rooms' and 'connections'."},
+                    ],
+                }
+            ]
+            
+            # Preparation for inference
+            text = qwen_processor.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
+            image_inputs, video_inputs = process_vision_info(messages)
+            inputs = qwen_processor(
+                text=[text],
+                images=image_inputs,
+                videos=video_inputs,
+                padding=True,
+                return_tensors="pt",
+            )
+            inputs = inputs.to(qwen_model.device)
+
+            # Inference
+            generated_ids = qwen_model.generate(**inputs, max_new_tokens=512)
+            generated_ids_trimmed = [
+                out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+            ]
+            output_text = qwen_processor.batch_decode(
+                generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+            )[0]
+            
+            # Store raw Qwen analysis for debugging or further processing
+            results["qwen_analysis"] = output_text
+            
+            # Note: Parsing the Qwen output into structured 'rooms' data would happen here
+            # if we trust Qwen more than OCR/YOLO for room detection.
+            
+        except Exception as e:
+            print(f"Error running Qwen inference: {e}")
+            results["qwen_error"] = str(e)
