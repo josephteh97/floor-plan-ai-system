@@ -1,79 +1,90 @@
 # Floor Plan AI Processing System
 
-AI-powered floor plan analysis and 3D model generation for construction industry.
+AI-powered floor plan analysis and 3D model generation for the construction industry.
+
+## Features
+
+- **AI Vision Analysis**: 
+  - **Qwen3-VL Integration**: For high-level spatial understanding and reasoning.
+  - **YOLOv8**: For element detection (Doors, Windows, Furniture).
+  - **PaddleOCR**: For reading dimensions and room labels.
+  - **OpenCV**: Fallback geometric analysis.
+- **3D Generation**: Converts 2D analysis into 3D models.
+- **Interactive Viewer**: Web-based 3D visualization using Three.js.
+- **Export**: Generates OBJ files for CAD integration.
 
 ## Prerequisites
 
-- Ubuntu 20.04 or later
-- Conda (Miniconda or Anaconda)
+- Python 3.10+
+- Node.js 18+
 - Git
+- (Optional) CUDA for GPU acceleration
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone <your-repo-url>
-cd floor-plan-ai
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd floor-plan-ai-system
+   ```
 
-2. Run setup:
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+2. **Backend Setup**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
+   *Note: For Qwen3-VL, you may need to install specific versions of transformers/torch compatible with your GPU.*
 
-3. Configure environment:
-```bash
-nano .env
-# Add your ANTHROPIC_API_KEY
-```
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   ```
 
 ## Usage
 
-Start the application:
+### Windows
+Double-click `run.bat` or run it from the command line.
+
+### Linux/Mac
 ```bash
+chmod +x run.sh
 ./run.sh
 ```
 
-Access:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+Access the application:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
 
-Stop the application:
+## Architecture
+
+1. **Upload**: User uploads 2D image.
+2. **Analysis (`backend/services/ai_service.py`)**:
+   - Image is processed by YOLO (detects objects) and OCR (reads text).
+   - Qwen3-VL provides semantic understanding (room relationships).
+3. **Generation (`backend/services/model_generator.py`)**:
+   - 2D detections are extruded into 3D geometry.
+4. **Visualization (`frontend/src/components/Viewer3D.jsx`)**:
+   - React Three Fiber renders the 3D model in the browser.
+
+## Customization
+
+- **Models**: Place your trained YOLO weights in `backend/` and update `ai_service.py`.
+- **Qwen3-VL**: Configure the model path in `ai_service.py` (`get_qwen_model`).
+
+### Run the code
+1. install backend dependencies
 ```bash
-./stop.sh
+cd backend
+pip install -r requirments.txt
 ```
 
-## Project Structure
-
-- `backend/` - Python FastAPI backend
-- `frontend/` - React frontend
-- `data/` - Upload and output storage
-- `logs/` - Application logs
-
-## Development
-
-Activate conda environment:
+2. Install Frontend dependencies
 ```bash
-conda activate floorplan-ai
-```
-
-View logs:
-```bash
-tail -f logs/backend.log
-tail -f logs/frontend.log
-```
-
-## Troubleshooting
-
-If conda command not found:
-```bash
-source ~/miniconda3/etc/profile.d/conda.sh
-# or
-source ~/anaconda3/etc/profile.d/conda.sh
+cd frontend
+npm install
 ```
 
 ## License
-
-Proprietary - MCC Engineering (Singapore) Pte Ltd
+Proprietary - MCC Engineering
