@@ -1,58 +1,75 @@
 #!/bin/bash
 
-echo "=========================================="
-echo "Floor Plan AI - Setup Script"
-echo "=========================================="
+# Colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Check if conda is installed
-if ! command -v conda &> /dev/null; then
-    echo "Error: Conda is not installed!"
-    echo "Please install Miniconda or Anaconda first:"
-    echo "https://docs.conda.io/en/latest/miniconda.html"
+echo -e "${GREEN}==========================================${NC}"
+echo -e "${GREEN}Floor Plan AI - Setup Script (Ubuntu/Linux)${NC}"
+echo -e "${GREEN}==========================================${NC}"
+
+# 1. System Dependencies Check
+echo "Checking system dependencies..."
+
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}Error: python3 is not installed.${NC}"
+    echo "Please run: sudo apt update && sudo apt install python3 python3-pip python3-venv"
     exit 1
 fi
 
-# Create conda environment
-echo "Creating conda environment..."
-conda env create -f environment.yml
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}Error: node is not installed.${NC}"
+    echo "Please install Node.js (v18+ recommended)."
+    exit 1
+fi
 
-# Activate environment
-echo "Activating environment..."
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate floorplan-ai
-
-# Create data directories
-echo "Creating data directories..."
-mkdir -p data/uploads data/processed data/outputs logs
-
-# Install backend dependencies
-echo "Installing backend dependencies..."
+# 2. Python Environment Setup
+echo -e "\n${GREEN}Setting up Backend (Python)...${NC}"
 cd backend
+
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv venv
+fi
+
+echo "Activating virtual environment..."
+source venv/bin/activate
+
+echo "Installing Python dependencies..."
+# Upgrade pip first
+pip install --upgrade pip
+# Install torch first (heavy dependency)
+# Note: For production with CUDA, user should install specific torch version
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
+
 cd ..
 
-# Install frontend dependencies
-echo "Installing frontend dependencies..."
+# 3. Frontend Setup
+echo -e "\n${GREEN}Setting up Frontend (Node.js)...${NC}"
 cd frontend
+echo "Installing Node dependencies..."
 npm install
 cd ..
 
-# Copy environment template
+# 4. Environment Variables
 if [ ! -f .env ]; then
-    echo "Creating .env file..."
-    cp .env.example .env
-    echo "Please edit .env file with your API keys"
+    echo -e "\n${GREEN}Creating .env file...${NC}"
+    if [ -f .env.example ]; then
+        cp .env.example .env
+    else
+        echo "ANTHROPIC_API_KEY=your_key_here" > .env
+        echo "APP_ENV=development" >> .env
+    fi
+    echo "Please edit .env file with your API keys."
 fi
 
-# Make scripts executable
-chmod +x setup.sh run.sh stop.sh
+# 5. Make run script executable
+chmod +x run.sh
 
-echo ""
-echo "=========================================="
-echo "Setup Complete!"
-echo "=========================================="
-echo ""
-echo "Next steps:"
-echo "1. Edit .env file and add your ANTHROPIC_API_KEY"
-echo "2. Run: ./run.sh"
-echo ""
+echo -e "\n${GREEN}==========================================${NC}"
+echo -e "${GREEN}Setup Complete!${NC}"
+echo -e "${GREEN}==========================================${NC}"
+echo -e "To start the application, run:"
+echo -e "  ./run.sh"
