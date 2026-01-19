@@ -6,7 +6,7 @@ import os
 
 router = APIRouter()
 
-@router.post("/analyze")
+@router.post("/analyze", method="post")
 async def analyze_floor_plan_endpoint(file: UploadFile = File(...)):
     """
     Analyze uploaded floor plan image
