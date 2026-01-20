@@ -73,7 +73,7 @@ Access the application:
 - **Models**: Place your trained YOLO weights in `backend/` and update `ai_service.py`.
 - **Qwen3-VL**: Configure the model path in `ai_service.py` (`get_qwen_model`).
 
-### Run the code
+#### Install the dependencies before running the code
 1. install backend dependencies
 ```bash
 cd backend
